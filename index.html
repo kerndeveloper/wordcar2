@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Car Word Game - Working 3D</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background: #000;
+        }
+        
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            touch-action: none;
+        }
+        
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 16px;
+            z-index: 10;
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10;
+        }
+        
+        .btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.3);
+            border: 2px solid white;
+            border-radius: 50%;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+            user-select: none;
+        }
+        
+        .btn:active {
+            background: rgba(255, 255, 255, 0.5);
+        }
+        
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <strong>3D Car Game</strong><br>
+        Phase 1: Drive around!<br>
+        <span id="fps">FPS: --</span>
+    </div>
+    
+    <canvas id="gameCanvas"></canvas>
+    
+    <div class="controls">
+        <div class="btn-group">
+            <div class="btn-row">
+                <div class="btn" id="btnUp">↑</div>
+            </div>
+            <div class="btn-row">
+                <div class="btn" id="btnLeft">←</div>
+                <div class="btn" id="btnDown">↓</div>
+                <div class="btn" id="btnRight">→</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        'use strict';
+        
+        // Get canvas and context
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const fpsEl = document.getElementById('fps');
+        
+        // Set canvas size
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // 3D to 2D projection
+        function project3D(x, y, z, cameraZ) {
+            const scale = 300 / (z - cameraZ + 300);
+            return {
+                x: canvas.width / 2 + x * scale,
+                y: canvas.height / 2 - y * scale,
+                scale: scale
+            };
+        }
+        
+        // Game state
+        let carX = 0;
+        let carZ = 0;
+        let cameraZ = 10;
+        const carSpeed = 0.15;
+        
+        // Input
+        const keys = {};
+        
+        window.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            e.preventDefault();
+        });
+        
+        window.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+        
+        // Touch controls
+        function setupButton(id, key) {
+            const btn = document.getElementById(id);
+            
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                keys[key] = true;
+            });
+            
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                keys[key] = false;
+            });
+            
+            btn.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                keys[key] = true;
+            });
+            
+            btn.addEventListener('mouseup', (e) => {
+                e.preventDefault();
+                keys[key] = false;
+            });
+        }
+        
+        setupButton('btnUp', 'ArrowUp');
+        setupButton('btnDown', 'ArrowDown');
+        setupButton('btnLeft', 'ArrowLeft');
+        setupButton('btnRight', 'ArrowRight');
+        
+        // Draw a simple 3D box
+        function drawBox(x, y, z, width, height, depth, color) {
+            const w = width / 2;
+            const h = height / 2;
+            const d = depth / 2;
+            
+            // Define corners
+            const corners = [
+                project3D(x - w, y - h, z - d, cameraZ),
+                project3D(x + w, y - h, z - d, cameraZ),
+                project3D(x + w, y + h, z - d, cameraZ),
+                project3D(x - w, y + h, z - d, cameraZ),
+                project3D(x - w, y - h, z + d, cameraZ),
+                project3D(x + w, y - h, z + d, cameraZ),
+                project3D(x + w, y + h, z + d, cameraZ),
+                project3D(x - w, y + h, z + d, cameraZ)
+            ];
+            
+            // Draw faces
+            function drawFace(indices, faceColor) {
+                ctx.beginPath();
+                ctx.moveTo(corners[indices[0]].x, corners[indices[0]].y);
+                for (let i = 1; i < indices.length; i++) {
+                    ctx.lineTo(corners[indices[i]].x, corners[indices[i]].y);
+                }
+                ctx.closePath();
+                ctx.fillStyle = faceColor;
+                ctx.fill();
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+            
+            // Front face (closest to camera)
+            drawFace([4, 5, 6, 7], color);
+            
+            // Top
+            drawFace([3, 2, 6, 7], shadeColor(color, 0.8));
+            
+            // Right
+            drawFace([1, 5, 6, 2], shadeColor(color, 0.6));
+            
+            // Left
+            drawFace([0, 4, 7, 3], shadeColor(color, 0.7));
+        }
+        
+        function shadeColor(color, factor) {
+            const num = parseInt(color.slice(1), 16);
+            const r = Math.floor(((num >> 16) & 0xFF) * factor);
+            const g = Math.floor(((num >> 8) & 0xFF) * factor);
+            const b = Math.floor((num & 0xFF) * factor);
+            return `rgb(${r},${g},${b})`;
+        }
+        
+        // Draw ground grid
+        function drawGround() {
+            ctx.strokeStyle = '#228B22';
+            ctx.lineWidth = 1;
+            
+            for (let i = -10; i <= 10; i++) {
+                // Horizontal lines
+                const start1 = project3D(i * 2, 0, -20, cameraZ);
+                const end1 = project3D(i * 2, 0, 20, cameraZ);
+                
+                ctx.beginPath();
+                ctx.moveTo(start1.x, start1.y);
+                ctx.lineTo(end1.x, end1.y);
+                ctx.stroke();
+                
+                // Vertical lines
+                const start2 = project3D(-20, 0, i * 2, cameraZ);
+                const end2 = project3D(20, 0, i * 2, cameraZ);
+                
+                ctx.beginPath();
+                ctx.moveTo(start2.x, start2.y);
+                ctx.lineTo(end2.x, end2.y);
+                ctx.stroke();
+            }
+        }
+        
+        // Update game state
+        function update() {
+            // Move car
+            if (keys['ArrowUp'] || keys['w']) carZ -= carSpeed;
+            if (keys['ArrowDown'] || keys['s']) carZ += carSpeed;
+            if (keys['ArrowLeft'] || keys['a']) carX -= carSpeed;
+            if (keys['ArrowRight'] || keys['d']) carX += carSpeed;
+            
+            // Bounds
+            carX = Math.max(-10, Math.min(10, carX));
+            carZ = Math.max(-15, Math.min(15, carZ));
+            
+            // Camera follows
+            cameraZ = carZ + 10;
+        }
+        
+        // Draw everything
+        function draw() {
+            // Sky
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Ground
+            ctx.fillStyle = '#228B22';
+            ctx.fillRect(0, canvas.height / 2, canvas.width, canvas.height / 2);
+            
+            // Grid
+            drawGround();
+            
+            // Test cubes (letters)
+            drawBox(-5, 0.75, -5, 1.5, 1.5, 1.5, '#FFFF00');
+            drawBox(0, 0.75, -10, 1.5, 1.5, 1.5, '#FFFF00');
+            drawBox(5, 0.75, -15, 1.5, 1.5, 1.5, '#FFFF00');
+            
+            // Car
+            drawBox(carX, 1, carZ, 2, 1.5, 3, '#FF0000');
+        }
+        
+        // FPS counter
+        let lastTime = performance.now();
+        let frameCount = 0;
+        
+        // Main game loop
+        function gameLoop(currentTime) {
+            frameCount++;
+            
+            if (currentTime - lastTime >= 1000) {
+                fpsEl.textContent = `FPS: ${frameCount}`;
+                frameCount = 0;
+                lastTime = currentTime;
+            }
+            
+            update();
+            draw();
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Start game
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
