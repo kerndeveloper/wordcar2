@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Car Word Game - Complete!</title>
+    <title>Car Word Game</title>
     <style>
         * {
             margin: 0;
@@ -29,24 +29,42 @@
             top: 10px;
             left: 10px;
             color: white;
-            background: rgba(0, 0, 0, 0.9);
-            padding: 15px;
-            border-radius: 8px;
-            font-size: 18px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 10px 15px;
+            border-radius: 12px;
+            font-size: 14px;
             z-index: 10;
             font-weight: bold;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        
+        .ui-title {
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+        
+        .ui-row {
+            display: flex;
+            gap: 15px;
+            margin: 2px 0;
+            font-size: 13px;
+        }
+        
+        .ui-label {
+            opacity: 0.8;
         }
         
         .highlight {
             color: #00ff00;
-            font-size: 22px;
+            font-size: 15px;
         }
         
         .word-display {
             color: #ffff00;
-            font-size: 26px;
-            margin-top: 5px;
+            font-size: 18px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
         
@@ -56,35 +74,6 @@
         
         .timer {
             color: #00ffff;
-            font-size: 20px;
-        }
-        
-        #soundToggle {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 60px;
-            height: 60px;
-            background: rgba(0, 200, 0, 0.9);
-            border: 3px solid white;
-            border-radius: 50%;
-            color: white;
-            font-size: 28px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 10;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
-            user-select: none;
-        }
-        
-        #soundToggle:active {
-            transform: scale(0.9);
-        }
-        
-        #soundToggle.off {
-            background: rgba(200, 0, 0, 0.9);
         }
         
         .controls {
@@ -97,8 +86,10 @@
         .btn {
             width: 80px;
             height: 80px;
-            background: rgba(255, 100, 100, 0.8);
-            border: 4px solid white;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
             color: white;
             font-size: 32px;
@@ -108,11 +99,11 @@
             justify-content: center;
             touch-action: manipulation;
             user-select: none;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
         }
         
         .btn:active {
-            background: rgba(255, 200, 200, 0.9);
+            background: rgba(255, 255, 255, 0.25);
             transform: scale(0.9);
         }
         
@@ -133,7 +124,10 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.95);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
             padding: 30px;
             border-radius: 20px;
             text-align: center;
@@ -142,13 +136,14 @@
             font-weight: bold;
             display: none;
             z-index: 100;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
         }
         
         .celebrate-text {
             color: #ffff00;
             font-size: 48px;
             margin-bottom: 10px;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
         }
         
         #instructions {
@@ -156,7 +151,10 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.95);
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
             padding: 30px;
             border-radius: 20px;
             text-align: center;
@@ -164,23 +162,26 @@
             font-size: 20px;
             z-index: 100;
             max-width: 90%;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
         }
         
         .start-btn {
             margin-top: 20px;
             padding: 15px 40px;
-            background: #00ff00;
-            color: black;
-            border: none;
+            background: rgba(0, 255, 0, 0.3);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            color: white;
             border-radius: 10px;
             font-size: 24px;
             font-weight: bold;
             cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0,255,0,0.2);
         }
         
         .start-btn:active {
-            background: #00cc00;
+            background: rgba(0, 255, 0, 0.5);
         }
     </style>
 </head>
@@ -194,24 +195,27 @@
         <div style="color: #ffff00; margin-bottom: 10px;">
             The YELLOW glowing letters are next!
         </div>
-        <div style="font-size: 16px; color: #aaa; margin-bottom: 10px;">
+        <div style="font-size: 16px; opacity: 0.8;">
             Use arrow buttons to move
-        </div>
-        <div style="font-size: 16px; color: #ff9900;">
-            🔊 Toggle sound with button in top-right
         </div>
         <button class="start-btn" onclick="startGame()">START GAME</button>
     </div>
     
     <div id="ui">
-        🚗 <strong>WORD RACER</strong><br>
-        Word: <span class="word-display" id="wordDisplay">---</span><br>
-        Next: <span class="highlight" id="nextLetter">-</span><br>
-        Score: <span class="highlight" id="score">0</span><br>
-        Time: <span class="timer" id="timer">0.0s</span>
+        <div class="ui-title">🚗 WORD RACER</div>
+        <div class="ui-row">
+            <span class="ui-label">Word:</span>
+            <span class="word-display" id="wordDisplay">---</span>
+        </div>
+        <div class="ui-row">
+            <span class="ui-label">Next:</span>
+            <span class="highlight" id="nextLetter">-</span>
+            <span class="ui-label">Score:</span>
+            <span class="highlight" id="score">0</span>
+            <span class="ui-label">Time:</span>
+            <span class="timer" id="timer">0.0s</span>
+        </div>
     </div>
-    
-    <div id="soundToggle" onclick="toggleSound()">🔊</div>
     
     <div id="celebration">
         <div class="celebrate-text">🎉 WORD COMPLETE! 🎉</div>
@@ -244,11 +248,8 @@
         const scoreEl = document.getElementById('score');
         const timerEl = document.getElementById('timer');
         const celebrationEl = document.getElementById('celebration');
-        const soundToggleBtn = document.getElementById('soundToggle');
         
         let gameStarted = false;
-        let audioContext = null;
-        let soundEnabled = false; // Default OFF until user toggles
         
         function resizeCanvas() {
             canvas.width = window.innerWidth;
@@ -277,103 +278,6 @@
         
         let wordStartTime = 0;
         let currentWordTime = 0;
-        
-        // Sound toggle function
-        function toggleSound() {
-            soundEnabled = !soundEnabled;
-            
-            if (soundEnabled) {
-                // Turn ON
-                if (!audioContext) {
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                
-                if (audioContext.state === 'suspended') {
-                    audioContext.resume().then(() => {
-                        console.log('Audio enabled and resumed');
-                    });
-                }
-                
-                soundToggleBtn.classList.remove('off');
-                soundToggleBtn.textContent = '🔊';
-                soundToggleBtn.style.background = 'rgba(0, 200, 0, 0.9)';
-            } else {
-                // Turn OFF
-                if (audioContext && audioContext.state === 'running') {
-                    audioContext.suspend().then(() => {
-                        console.log('Audio disabled and suspended');
-                    });
-                }
-                
-                soundToggleBtn.classList.add('off');
-                soundToggleBtn.textContent = '🔇';
-                soundToggleBtn.style.background = 'rgba(200, 0, 0, 0.9)';
-            }
-        }
-        
-        // Make toggleSound global
-        window.toggleSound = toggleSound;
-        
-        function playCollectSound() {
-            if (!soundEnabled || !audioContext || audioContext.state !== 'running') {
-                return;
-            }
-            
-            try {
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                
-                oscillator.frequency.value = 800;
-                oscillator.type = 'sine';
-                
-                const now = audioContext.currentTime;
-                gainNode.gain.setValueAtTime(0.4, now);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-                
-                oscillator.start(now);
-                oscillator.stop(now + 0.15);
-            } catch (e) {
-                console.log('Sound error:', e);
-            }
-        }
-        
-        function playCompleteSound() {
-            if (!soundEnabled || !audioContext || audioContext.state !== 'running') {
-                return;
-            }
-            
-            try {
-                const melody = [
-                    { freq: 523, time: 0, duration: 0.2 },
-                    { freq: 659, time: 0.15, duration: 0.2 },
-                    { freq: 784, time: 0.3, duration: 0.2 },
-                    { freq: 1047, time: 0.45, duration: 0.4 }
-                ];
-                
-                melody.forEach(note => {
-                    const oscillator = audioContext.createOscillator();
-                    const gainNode = audioContext.createGain();
-                    
-                    oscillator.connect(gainNode);
-                    gainNode.connect(audioContext.destination);
-                    
-                    oscillator.frequency.value = note.freq;
-                    oscillator.type = 'triangle';
-                    
-                    const startTime = audioContext.currentTime + note.time;
-                    gainNode.gain.setValueAtTime(0.5, startTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + note.duration);
-                    
-                    oscillator.start(startTime);
-                    oscillator.stop(startTime + note.duration);
-                });
-            } catch (e) {
-                console.log('Sound error:', e);
-            }
-        }
         
         function createParticles(x, z) {
             for (let i = 0; i < 20; i++) {
@@ -677,7 +581,6 @@
                     currentLetterIndex++;
                     score += 10;
                     
-                    playCollectSound();
                     createParticles(letter.x, letter.z);
                     updateUI();
                     
@@ -686,7 +589,6 @@
                         const timeBonus = Math.max(0, Math.floor((10 - currentWordTime) * 5));
                         score += 50 + timeBonus;
                         
-                        playCompleteSound();
                         showCelebration();
                         
                         setTimeout(() => {
@@ -734,11 +636,6 @@
         }
         
         window.startGame = startGame;
-        
-        // Set initial state to OFF
-        soundToggleBtn.classList.add('off');
-        soundToggleBtn.textContent = '🔇';
-        soundToggleBtn.style.background = 'rgba(200, 0, 0, 0.9)';
         
         gameLoop();
     </script>
