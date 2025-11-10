@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Car Word Game - Complete!</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background: #000;
+        }
+        
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            touch-action: none;
+        }
+        
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 18px;
+            z-index: 10;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+        }
+        
+        .highlight {
+            color: #00ff00;
+            font-size: 22px;
+        }
+        
+        .word-display {
+            color: #ffff00;
+            font-size: 26px;
+            margin-top: 5px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .collected {
+            color: #00ff00;
+        }
+        
+        .timer {
+            color: #00ffff;
+            font-size: 20px;
+        }
+        
+        #soundToggle {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 60px;
+            height: 60px;
+            background: rgba(0, 200, 0, 0.9);
+            border: 3px solid white;
+            border-radius: 50%;
+            color: white;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            user-select: none;
+        }
+        
+        #soundToggle:active {
+            transform: scale(0.9);
+        }
+        
+        #soundToggle.off {
+            background: rgba(200, 0, 0, 0.9);
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10;
+        }
+        
+        .btn {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 100, 100, 0.8);
+            border: 4px solid white;
+            border-radius: 50%;
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+            user-select: none;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+        }
+        
+        .btn:active {
+            background: rgba(255, 200, 200, 0.9);
+            transform: scale(0.9);
+        }
+        
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .btn-row {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        #celebration {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+            display: none;
+            z-index: 100;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+        }
+        
+        .celebrate-text {
+            color: #ffff00;
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        
+        #instructions {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            color: white;
+            font-size: 20px;
+            z-index: 100;
+            max-width: 90%;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+        }
+        
+        .start-btn {
+            margin-top: 20px;
+            padding: 15px 40px;
+            background: #00ff00;
+            color: black;
+            border: none;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .start-btn:active {
+            background: #00cc00;
+        }
+    </style>
+</head>
+<body>
+    <div id="instructions">
+        <div style="font-size: 32px; margin-bottom: 20px;">🚗 CAR WORD GAME 🚗</div>
+        <div style="margin-bottom: 15px;">
+            Drive the red car and collect letters<br>
+            in the correct order to spell words!
+        </div>
+        <div style="color: #ffff00; margin-bottom: 10px;">
+            The YELLOW glowing letters are next!
+        </div>
+        <div style="font-size: 16px; color: #aaa; margin-bottom: 10px;">
+            Use arrow buttons to move
+        </div>
+        <div style="font-size: 16px; color: #ff9900;">
+            🔊 Toggle sound with button in top-right
+        </div>
+        <button class="start-btn" onclick="startGame()">START GAME</button>
+    </div>
+    
+    <div id="ui">
+        🚗 <strong>WORD RACER</strong><br>
+        Word: <span class="word-display" id="wordDisplay">---</span><br>
+        Next: <span class="highlight" id="nextLetter">-</span><br>
+        Score: <span class="highlight" id="score">0</span><br>
+        Time: <span class="timer" id="timer">0.0s</span>
+    </div>
+    
+    <div id="soundToggle" onclick="toggleSound()">🔊</div>
+    
+    <div id="celebration">
+        <div class="celebrate-text">🎉 WORD COMPLETE! 🎉</div>
+        <div id="celebrateWord"></div>
+        <div id="celebrateBonus"></div>
+    </div>
+    
+    <canvas id="gameCanvas"></canvas>
+    
+    <div class="controls">
+        <div class="btn-group">
+            <div class="btn-row">
+                <div class="btn" id="btnUp">↑</div>
+            </div>
+            <div class="btn-row">
+                <div class="btn" id="btnLeft">←</div>
+                <div class="btn" id="btnDown">↓</div>
+                <div class="btn" id="btnRight">→</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        'use strict';
+        
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const wordDisplayEl = document.getElementById('wordDisplay');
+        const nextLetterEl = document.getElementById('nextLetter');
+        const scoreEl = document.getElementById('score');
+        const timerEl = document.getElementById('timer');
+        const celebrationEl = document.getElementById('celebration');
+        const soundToggleBtn = document.getElementById('soundToggle');
+        
+        let gameStarted = false;
+        let audioContext = null;
+        let soundEnabled = false; // Default OFF until user toggles
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        const words = [
+            'CAT', 'DOG', 'SUN', 'MOON', 'STAR', 'FISH', 'TREE', 'BIRD',
+            'FROG', 'BEAR', 'SHIP', 'CAKE', 'BOOK', 'GAME', 'RAIN', 'SNOW',
+            'WIND', 'FIRE', 'ROCK', 'WAVE', 'PATH', 'DOOR', 'LAMP', 'COIN',
+            'KEYS', 'BALL', 'DRUM', 'HORN', 'BELL', 'NEST', 'LEAF', 'SEED'
+        ];
+        
+        let carX = 0;
+        let carZ = 0;
+        const carSpeed = 0.3;
+        let score = 0;
+        let wordsCompleted = 0;
+        
+        let currentWord = '';
+        let currentLetterIndex = 0;
+        let letters = [];
+        let particles = [];
+        
+        let wordStartTime = 0;
+        let currentWordTime = 0;
+        
+        // Sound toggle function
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            
+            if (soundEnabled) {
+                // Turn ON
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume().then(() => {
+                        console.log('Audio enabled and resumed');
+                    });
+                }
+                
+                soundToggleBtn.classList.remove('off');
+                soundToggleBtn.textContent = '🔊';
+                soundToggleBtn.style.background = 'rgba(0, 200, 0, 0.9)';
+            } else {
+                // Turn OFF
+                if (audioContext && audioContext.state === 'running') {
+                    audioContext.suspend().then(() => {
+                        console.log('Audio disabled and suspended');
+                    });
+                }
+                
+                soundToggleBtn.classList.add('off');
+                soundToggleBtn.textContent = '🔇';
+                soundToggleBtn.style.background = 'rgba(200, 0, 0, 0.9)';
+            }
+        }
+        
+        // Make toggleSound global
+        window.toggleSound = toggleSound;
+        
+        function playCollectSound() {
+            if (!soundEnabled || !audioContext || audioContext.state !== 'running') {
+                return;
+            }
+            
+            try {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+                
+                const now = audioContext.currentTime;
+                gainNode.gain.setValueAtTime(0.4, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                
+                oscillator.start(now);
+                oscillator.stop(now + 0.15);
+            } catch (e) {
+                console.log('Sound error:', e);
+            }
+        }
+        
+        function playCompleteSound() {
+            if (!soundEnabled || !audioContext || audioContext.state !== 'running') {
+                return;
+            }
+            
+            try {
+                const melody = [
+                    { freq: 523, time: 0, duration: 0.2 },
+                    { freq: 659, time: 0.15, duration: 0.2 },
+                    { freq: 784, time: 0.3, duration: 0.2 },
+                    { freq: 1047, time: 0.45, duration: 0.4 }
+                ];
+                
+                melody.forEach(note => {
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.value = note.freq;
+                    oscillator.type = 'triangle';
+                    
+                    const startTime = audioContext.currentTime + note.time;
+                    gainNode.gain.setValueAtTime(0.5, startTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + note.duration);
+                    
+                    oscillator.start(startTime);
+                    oscillator.stop(startTime + note.duration);
+                });
+            } catch (e) {
+                console.log('Sound error:', e);
+            }
+        }
+        
+        function createParticles(x, z) {
+            for (let i = 0; i < 20; i++) {
+                particles.push({
+                    x: x,
+                    z: z,
+                    y: 0.5,
+                    vx: (Math.random() - 0.5) * 0.4,
+                    vz: (Math.random() - 0.5) * 0.4,
+                    vy: Math.random() * 0.4 + 0.3,
+                    life: 1,
+                    size: 10 + Math.random() * 10,
+                    color: ['#ffff00', '#ff00ff', '#00ffff', '#ff6600'][Math.floor(Math.random() * 4)]
+                });
+            }
+        }
+        
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.z += p.vz;
+                p.y += p.vy;
+                p.vy -= 0.015;
+                p.life -= 0.015;
+                
+                if (p.life <= 0 || p.y < 0) {
+                    particles.splice(i, 1);
+                }
+            }
+        }
+        
+        function drawParticles() {
+            particles.forEach(p => {
+                const pos = toScreen(p.x, p.z);
+                const size = p.size * pos.scale * p.life;
+                
+                ctx.save();
+                ctx.globalAlpha = p.life * 0.9;
+                ctx.fillStyle = p.color;
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 15;
+                
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y - p.y * 60 * pos.scale, size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+            });
+        }
+        
+        function startNewWord() {
+            currentWord = words[Math.floor(Math.random() * words.length)];
+            currentLetterIndex = 0;
+            wordStartTime = Date.now();
+            
+            letters = [];
+            for (let i = 0; i < currentWord.length; i++) {
+                letters.push({
+                    char: currentWord[i],
+                    index: i,
+                    x: (Math.random() - 0.5) * 16,
+                    z: 3 + i * 4,
+                    collected: false,
+                    scale: 1,
+                    collectAnim: 0
+                });
+            }
+            
+            updateUI();
+        }
+        
+        function updateUI() {
+            let displayWord = '';
+            for (let i = 0; i < currentWord.length; i++) {
+                if (i < currentLetterIndex) {
+                    displayWord += `<span class="collected">${currentWord[i]}</span>`;
+                } else {
+                    displayWord += currentWord[i];
+                }
+            }
+            wordDisplayEl.innerHTML = displayWord;
+            
+            if (currentLetterIndex < currentWord.length) {
+                nextLetterEl.textContent = currentWord[currentLetterIndex];
+            } else {
+                nextLetterEl.textContent = '✓';
+            }
+            
+            scoreEl.textContent = score;
+            
+            if (gameStarted && currentLetterIndex < currentWord.length) {
+                currentWordTime = (Date.now() - wordStartTime) / 1000;
+                timerEl.textContent = currentWordTime.toFixed(1) + 's';
+            }
+        }
+        
+        function showCelebration() {
+            const timeBonus = Math.max(0, Math.floor((10 - currentWordTime) * 5));
+            document.getElementById('celebrateWord').textContent = currentWord;
+            document.getElementById('celebrateBonus').innerHTML = 
+                `+50 points<br>Time: ${currentWordTime.toFixed(1)}s` +
+                (timeBonus > 0 ? `<br>Speed bonus: +${timeBonus}` : '');
+            
+            celebrationEl.style.display = 'block';
+            
+            setTimeout(() => {
+                celebrationEl.style.display = 'none';
+            }, 1500);
+        }
+        
+        function getScale(z) {
+            return 1 / (1 + z * 0.05);
+        }
+        
+        function toScreen(x, z) {
+            const scale = getScale(z);
+            return {
+                x: canvas.width / 2 + (x - carX) * 80 * scale,
+                y: canvas.height * 0.7 - z * 20 * scale,
+                scale: scale
+            };
+        }
+        
+        function checkCollision(letter) {
+            const dx = carX - letter.x;
+            const dz = carZ - letter.z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+            return distance < 1.5;
+        }
+        
+        const keys = {};
+        
+        window.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            e.preventDefault();
+        });
+        
+        window.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+        
+        function setupButton(id, key) {
+            const btn = document.getElementById(id);
+            
+            const activate = (e) => {
+                e.preventDefault();
+                keys[key] = true;
+            };
+            
+            const deactivate = (e) => {
+                e.preventDefault();
+                keys[key] = false;
+            };
+            
+            btn.addEventListener('touchstart', activate);
+            btn.addEventListener('touchend', deactivate);
+            btn.addEventListener('touchcancel', deactivate);
+            btn.addEventListener('mousedown', activate);
+            btn.addEventListener('mouseup', deactivate);
+        }
+        
+        setupButton('btnUp', 'ArrowUp');
+        setupButton('btnDown', 'ArrowDown');
+        setupButton('btnLeft', 'ArrowLeft');
+        setupButton('btnRight', 'ArrowRight');
+        
+        function drawGround() {
+            ctx.strokeStyle = '#2a5a2a';
+            ctx.lineWidth = 2;
+            
+            for (let z = -5; z <= 25; z += 2) {
+                const left = toScreen(-15, z);
+                const right = toScreen(15, z);
+                
+                ctx.beginPath();
+                ctx.moveTo(left.x, left.y);
+                ctx.lineTo(right.x, right.y);
+                ctx.stroke();
+            }
+            
+            for (let x = -15; x <= 15; x += 3) {
+                const near = toScreen(x, -5);
+                const far = toScreen(x, 25);
+                
+                ctx.beginPath();
+                ctx.moveTo(near.x, near.y);
+                ctx.lineTo(far.x, far.y);
+                ctx.stroke();
+            }
+        }
+        
+        function drawLetter(letter) {
+            if (letter.collectAnim > 0) {
+                letter.collectAnim += 0.1;
+                if (letter.collectAnim >= 1) return;
+            }
+            
+            const pos = toScreen(letter.x, letter.z);
+            
+            if (pos.y < 0 || pos.y > canvas.height) return;
+            
+            const animScale = letter.collectAnim > 0 ? (1 - letter.collectAnim) : 1;
+            const size = 60 * pos.scale * letter.scale * animScale;
+            
+            const targetChar = currentWord[currentLetterIndex];
+            const isNext = (letter.char === targetChar) && !letter.collected;
+            
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.beginPath();
+            ctx.ellipse(pos.x, pos.y, size * 0.4, size * 0.15, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            if (isNext) {
+                const time = Date.now() * 0.003;
+                const pulse = Math.sin(time) * 0.5 + 0.5;
+                
+                for (let i = 3; i > 0; i--) {
+                    ctx.strokeStyle = `rgba(255, 255, 0, ${0.3 * pulse * (i / 3)})`;
+                    ctx.lineWidth = 8;
+                    ctx.strokeRect(
+                        pos.x - (size/2 + i * 5), 
+                        pos.y - (size + i * 5), 
+                        size + i * 10, 
+                        size + i * 10
+                    );
+                }
+                
+                ctx.shadowColor = '#ffff00';
+                ctx.shadowBlur = 25 + pulse * 15;
+            }
+            
+            ctx.fillStyle = isNext ? '#ffff00' : '#ffffff';
+            ctx.fillRect(pos.x - size/2, pos.y - size, size, size);
+            
+            ctx.shadowBlur = 0;
+            
+            ctx.strokeStyle = isNext ? '#ff0000' : '#000';
+            ctx.lineWidth = isNext ? 5 : 2;
+            ctx.strokeRect(pos.x - size/2, pos.y - size, size, size);
+            
+            ctx.fillStyle = '#000';
+            ctx.font = `bold ${size * 0.7}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(letter.char, pos.x, pos.y - size/2);
+        }
+        
+        function drawCar() {
+            const pos = toScreen(carX, carZ);
+            const scale = pos.scale;
+            
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.beginPath();
+            ctx.ellipse(pos.x, pos.y, 60 * scale, 20 * scale, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#ff0000';
+            ctx.fillRect(pos.x - 50 * scale, pos.y - 80 * scale, 100 * scale, 70 * scale);
+            
+            ctx.fillStyle = '#cc0000';
+            ctx.fillRect(pos.x - 40 * scale, pos.y - 120 * scale, 80 * scale, 40 * scale);
+            
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(pos.x - 35 * scale, pos.y - 115 * scale, 30 * scale, 30 * scale);
+            ctx.fillRect(pos.x + 5 * scale, pos.y - 115 * scale, 30 * scale, 30 * scale);
+            
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(pos.x - 30 * scale, pos.y - 10 * scale, 12 * scale, 0, Math.PI * 2);
+            ctx.arc(pos.x + 30 * scale, pos.y - 10 * scale, 12 * scale, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(pos.x - 50 * scale, pos.y - 80 * scale, 100 * scale, 70 * scale);
+            ctx.strokeRect(pos.x - 40 * scale, pos.y - 120 * scale, 80 * scale, 40 * scale);
+        }
+        
+        function update() {
+            if (!gameStarted) return;
+            
+            if (keys['ArrowUp'] || keys['w']) carZ += carSpeed;
+            if (keys['ArrowDown'] || keys['s']) carZ -= carSpeed;
+            if (keys['ArrowLeft'] || keys['a']) carX -= carSpeed;
+            if (keys['ArrowRight'] || keys['d']) carX += carSpeed;
+            
+            carX = Math.max(-12, Math.min(12, carX));
+            carZ = Math.max(-3, Math.min(25, carZ));
+            
+            updateParticles();
+            
+            const targetChar = currentWord[currentLetterIndex];
+            
+            for (let i = 0; i < letters.length; i++) {
+                const letter = letters[i];
+                
+                if (letter.char === targetChar && !letter.collected && checkCollision(letter)) {
+                    letter.collected = true;
+                    letter.collectAnim = 0.01;
+                    currentLetterIndex++;
+                    score += 10;
+                    
+                    playCollectSound();
+                    createParticles(letter.x, letter.z);
+                    updateUI();
+                    
+                    if (currentLetterIndex >= currentWord.length) {
+                        wordsCompleted++;
+                        const timeBonus = Math.max(0, Math.floor((10 - currentWordTime) * 5));
+                        score += 50 + timeBonus;
+                        
+                        playCompleteSound();
+                        showCelebration();
+                        
+                        setTimeout(() => {
+                            carX = 0;
+                            carZ = 0;
+                            startNewWord();
+                        }, 1500);
+                    }
+                    break;
+                }
+            }
+            
+            updateUI();
+        }
+        
+        function draw() {
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#87CEEB');
+            gradient.addColorStop(1, '#B0E0E6');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#228B22';
+            ctx.fillRect(0, canvas.height * 0.55, canvas.width, canvas.height * 0.45);
+            
+            drawGround();
+            
+            const sortedLetters = [...letters].sort((a, b) => b.z - a.z);
+            sortedLetters.forEach(letter => drawLetter(letter));
+            
+            drawParticles();
+            drawCar();
+        }
+        
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function startGame() {
+            document.getElementById('instructions').style.display = 'none';
+            gameStarted = true;
+            startNewWord();
+        }
+        
+        window.startGame = startGame;
+        
+        // Set initial state to OFF
+        soundToggleBtn.classList.add('off');
+        soundToggleBtn.textContent = '🔇';
+        soundToggleBtn.style.background = 'rgba(200, 0, 0, 0.9)';
+        
+        gameLoop();
+    </script>
+</body>
+</html>
