@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Car Word Game - Working 3D</title>
+    <title>Car Word Game - Phase 2.5</title>
     <style>
         * {
             margin: 0;
@@ -29,11 +29,17 @@
             top: 10px;
             left: 10px;
             color: white;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.9);
             padding: 15px;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 18px;
             z-index: 10;
+            font-weight: bold;
+        }
+        
+        .highlight {
+            color: #ffff00;
+            font-size: 20px;
         }
         
         .controls {
@@ -44,43 +50,45 @@
         }
         
         .btn {
-            width: 60px;
-            height: 60px;
-            background: rgba(255, 255, 255, 0.3);
-            border: 2px solid white;
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 100, 100, 0.8);
+            border: 4px solid white;
             border-radius: 50%;
             color: white;
-            font-size: 20px;
+            font-size: 32px;
             font-weight: bold;
             display: flex;
             align-items: center;
             justify-content: center;
             touch-action: manipulation;
             user-select: none;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
         }
         
         .btn:active {
-            background: rgba(255, 255, 255, 0.5);
+            background: rgba(255, 200, 200, 0.9);
+            transform: scale(0.9);
         }
         
         .btn-group {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 15px;
         }
         
         .btn-row {
             display: flex;
-            gap: 10px;
+            gap: 15px;
             justify-content: center;
         }
     </style>
 </head>
 <body>
     <div id="ui">
-        <strong>3D Car Game</strong><br>
-        Phase 1: Drive around!<br>
-        <span id="fps">FPS: --</span>
+        🚗 <strong>DRIVE THE RED CAR!</strong><br>
+        Position: <span class="highlight" id="position">0, 0</span><br>
+        FPS: <span id="fps">60</span>
     </div>
     
     <canvas id="gameCanvas"></canvas>
@@ -101,12 +109,11 @@
     <script>
         'use strict';
         
-        // Get canvas and context
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const fpsEl = document.getElementById('fps');
+        const positionEl = document.getElementById('position');
         
-        // Set canvas size
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -114,12 +121,22 @@
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
         
-        // 3D to 2D projection
-        function project3D(x, y, z, cameraZ) {
-            const scale = 300 / (z - cameraZ + 300);
+        // MUCH CLOSER CAMERA for better visibility
+        function project3D(x, y, z) {
+            const cameraX = carX;
+            const cameraY = 4; // Lower camera
+            const cameraZ = carZ + 6; // MUCH closer
+            
+            const relX = x - cameraX;
+            const relY = y - cameraY;
+            const relZ = z - cameraZ;
+            
+            if (relZ >= -0.5) return null;
+            
+            const scale = 600 / (-relZ); // Bigger scale
             return {
-                x: canvas.width / 2 + x * scale,
-                y: canvas.height / 2 - y * scale,
+                x: canvas.width / 2 + relX * scale,
+                y: canvas.height / 2 + relY * scale,
                 scale: scale
             };
         }
@@ -127,8 +144,7 @@
         // Game state
         let carX = 0;
         let carZ = 0;
-        let cameraZ = 10;
-        const carSpeed = 0.15;
+        const carSpeed = 0.3; // Even faster
         
         // Input
         const keys = {};
@@ -146,25 +162,24 @@
         function setupButton(id, key) {
             const btn = document.getElementById(id);
             
-            btn.addEventListener('touchstart', (e) => {
+            const activate = (e) => {
                 e.preventDefault();
                 keys[key] = true;
-            });
+            };
             
-            btn.addEventListener('touchend', (e) => {
+            const deactivate = (e) => {
                 e.preventDefault();
                 keys[key] = false;
-            });
+            };
             
-            btn.addEventListener('mousedown', (e) => {
-                e.preventDefault();
-                keys[key] = true;
-            });
+            btn.addEventListener('touchstart', activate);
+            btn.addEventListener('touchend', deactivate);
+            btn.addEventListener('mousedown', activate);
+            btn.addEventListener('mouseup', deactivate);
             
-            btn.addEventListener('mouseup', (e) => {
-                e.preventDefault();
-                keys[key] = false;
-            });
+            // Prevent stuck buttons
+            btn.addEventListener('touchcancel', deactivate);
+            document.addEventListener('touchend', deactivate);
         }
         
         setupButton('btnUp', 'ArrowUp');
@@ -172,25 +187,60 @@
         setupButton('btnLeft', 'ArrowLeft');
         setupButton('btnRight', 'ArrowRight');
         
-        // Draw a simple 3D box
+        // Draw BIGGER, CLEARER car
+        function drawCar() {
+            // Main body - BRIGHT RED
+            drawBox(carX, 0.7, carZ, 3, 1.2, 5, '#ff0000');
+            
+            // Cabin - ORANGE for contrast
+            drawBox(carX, 1.6, carZ - 0.5, 2.5, 0.8, 3, '#ff6600');
+            
+            // Hood - YELLOW
+            drawBox(carX, 0.4, carZ - 3, 2.8, 0.4, 1, '#ffff00');
+            
+            // Draw BIG wheels
+            const wheelPositions = [
+                { x: -1.2, z: -1.8 },
+                { x: 1.2, z: -1.8 },
+                { x: -1.2, z: 1.8 },
+                { x: 1.2, z: 1.8 }
+            ];
+            
+            wheelPositions.forEach(wheel => {
+                const pos = project3D(carX + wheel.x, 0.4, carZ + wheel.z);
+                if (pos) {
+                    ctx.fillStyle = '#000';
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, 15 * pos.scale, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#666';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+            });
+            
+            // Draw windows (cyan/blue for visibility)
+            drawBox(carX, 1.6, carZ - 1, 2.2, 0.6, 1.5, '#00ffff');
+        }
+        
         function drawBox(x, y, z, width, height, depth, color) {
             const w = width / 2;
             const h = height / 2;
             const d = depth / 2;
             
-            // Define corners
             const corners = [
-                project3D(x - w, y - h, z - d, cameraZ),
-                project3D(x + w, y - h, z - d, cameraZ),
-                project3D(x + w, y + h, z - d, cameraZ),
-                project3D(x - w, y + h, z - d, cameraZ),
-                project3D(x - w, y - h, z + d, cameraZ),
-                project3D(x + w, y - h, z + d, cameraZ),
-                project3D(x + w, y + h, z + d, cameraZ),
-                project3D(x - w, y + h, z + d, cameraZ)
+                project3D(x - w, y - h, z - d),
+                project3D(x + w, y - h, z - d),
+                project3D(x + w, y + h, z - d),
+                project3D(x - w, y + h, z - d),
+                project3D(x - w, y - h, z + d),
+                project3D(x + w, y - h, z + d),
+                project3D(x + w, y + h, z + d),
+                project3D(x - w, y + h, z + d)
             ];
             
-            // Draw faces
+            if (corners.some(c => c === null)) return;
+            
             function drawFace(indices, faceColor) {
                 ctx.beginPath();
                 ctx.moveTo(corners[indices[0]].x, corners[indices[0]].y);
@@ -201,21 +251,17 @@
                 ctx.fillStyle = faceColor;
                 ctx.fill();
                 ctx.strokeStyle = '#000';
-                ctx.lineWidth = 2;
+                ctx.lineWidth = 3;
                 ctx.stroke();
             }
             
-            // Front face (closest to camera)
+            // Draw all faces with shading
+            drawFace([0, 1, 2, 3], shadeColor(color, 0.4));
+            drawFace([0, 4, 7, 3], shadeColor(color, 0.6));
+            drawFace([1, 5, 6, 2], shadeColor(color, 0.7));
+            drawFace([0, 1, 5, 4], shadeColor(color, 0.5));
+            drawFace([3, 2, 6, 7], shadeColor(color, 0.9));
             drawFace([4, 5, 6, 7], color);
-            
-            // Top
-            drawFace([3, 2, 6, 7], shadeColor(color, 0.8));
-            
-            // Right
-            drawFace([1, 5, 6, 2], shadeColor(color, 0.6));
-            
-            // Left
-            drawFace([0, 4, 7, 3], shadeColor(color, 0.7));
         }
         
         function shadeColor(color, factor) {
@@ -226,80 +272,85 @@
             return `rgb(${r},${g},${b})`;
         }
         
-        // Draw ground grid
+        // Simpler, BOLDER grid
         function drawGround() {
-            ctx.strokeStyle = '#228B22';
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = '#1a4d1a';
+            ctx.lineWidth = 3;
             
-            for (let i = -10; i <= 10; i++) {
-                // Horizontal lines
-                const start1 = project3D(i * 2, 0, -20, cameraZ);
-                const end1 = project3D(i * 2, 0, 20, cameraZ);
+            for (let i = -8; i <= 8; i++) {
+                const start1 = project3D(i * 3, 0, -20);
+                const end1 = project3D(i * 3, 0, 20);
                 
-                ctx.beginPath();
-                ctx.moveTo(start1.x, start1.y);
-                ctx.lineTo(end1.x, end1.y);
-                ctx.stroke();
+                if (start1 && end1) {
+                    ctx.beginPath();
+                    ctx.moveTo(start1.x, start1.y);
+                    ctx.lineTo(end1.x, end1.y);
+                    ctx.stroke();
+                }
                 
-                // Vertical lines
-                const start2 = project3D(-20, 0, i * 2, cameraZ);
-                const end2 = project3D(20, 0, i * 2, cameraZ);
+                const start2 = project3D(-20, 0, i * 3);
+                const end2 = project3D(20, 0, i * 3);
                 
-                ctx.beginPath();
-                ctx.moveTo(start2.x, start2.y);
-                ctx.lineTo(end2.x, end2.y);
-                ctx.stroke();
+                if (start2 && end2) {
+                    ctx.beginPath();
+                    ctx.moveTo(start2.x, start2.y);
+                    ctx.lineTo(end2.x, end2.y);
+                    ctx.stroke();
+                }
             }
         }
         
-        // Update game state
+        // BIG test letters
+        function drawTestLetters() {
+            const letters = [
+                { x: -5, z: -8, color: '#ffff00' },
+                { x: 0, z: -12, color: '#ff00ff' },
+                { x: 5, z: -16, color: '#00ffff' }
+            ];
+            
+            letters.forEach(letter => {
+                drawBox(letter.x, 1, letter.z, 2, 2, 2, letter.color);
+            });
+        }
+        
         function update() {
-            // Move car
             if (keys['ArrowUp'] || keys['w']) carZ -= carSpeed;
             if (keys['ArrowDown'] || keys['s']) carZ += carSpeed;
             if (keys['ArrowLeft'] || keys['a']) carX -= carSpeed;
             if (keys['ArrowRight'] || keys['d']) carX += carSpeed;
             
-            // Bounds
-            carX = Math.max(-10, Math.min(10, carX));
-            carZ = Math.max(-15, Math.min(15, carZ));
+            carX = Math.max(-12, Math.min(12, carX));
+            carZ = Math.max(-18, Math.min(18, carZ));
             
-            // Camera follows
-            cameraZ = carZ + 10;
+            positionEl.textContent = `${carX.toFixed(1)}, ${carZ.toFixed(1)}`;
         }
         
-        // Draw everything
         function draw() {
             // Sky
-            ctx.fillStyle = '#87CEEB';
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#87CEEB');
+            gradient.addColorStop(1, '#B0E0E6');
+            ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
             // Ground
             ctx.fillStyle = '#228B22';
-            ctx.fillRect(0, canvas.height / 2, canvas.width, canvas.height / 2);
+            ctx.fillRect(0, canvas.height * 0.4, canvas.width, canvas.height * 0.6);
             
-            // Grid
             drawGround();
-            
-            // Test cubes (letters)
-            drawBox(-5, 0.75, -5, 1.5, 1.5, 1.5, '#FFFF00');
-            drawBox(0, 0.75, -10, 1.5, 1.5, 1.5, '#FFFF00');
-            drawBox(5, 0.75, -15, 1.5, 1.5, 1.5, '#FFFF00');
-            
-            // Car
-            drawBox(carX, 1, carZ, 2, 1.5, 3, '#FF0000');
+            drawTestLetters();
+            drawCar();
         }
         
         // FPS counter
         let lastTime = performance.now();
         let frameCount = 0;
         
-        // Main game loop
         function gameLoop(currentTime) {
             frameCount++;
             
             if (currentTime - lastTime >= 1000) {
-                fpsEl.textContent = `FPS: ${frameCount}`;
+                fpsEl.textContent = frameCount;
                 frameCount = 0;
                 lastTime = currentTime;
             }
@@ -310,7 +361,6 @@
             requestAnimationFrame(gameLoop);
         }
         
-        // Start game
         requestAnimationFrame(gameLoop);
     </script>
 </body>
