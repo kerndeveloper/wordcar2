@@ -244,21 +244,39 @@
         let wordStartTime = 0;
         let currentWordTime = 0;
         
-        // Initialize audio on user interaction
+        // Initialize audio
         function initAudio() {
             if (!audioContext) {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
             }
-            if (audioContext.state === 'suspended') {
-                audioContext.resume();
-            }
+            resumeAudio();
             audioUnlocked = true;
         }
+        
+        // Resume audio context (for when returning from another tab)
+        function resumeAudio() {
+            if (audioContext && audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+        }
+        
+        // Auto-resume audio when page becomes visible
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && audioUnlocked) {
+                resumeAudio();
+            }
+        });
+        
+        // Also resume on any user interaction
+        window.addEventListener('touchstart', resumeAudio, { once: false });
+        window.addEventListener('click', resumeAudio, { once: false });
         
         function playCollectSound() {
             if (!audioUnlocked || !audioContext) return;
             
             try {
+                resumeAudio(); // Ensure audio is active
+                
                 const oscillator = audioContext.createOscillator();
                 const gainNode = audioContext.createGain();
                 
@@ -268,11 +286,12 @@
                 oscillator.frequency.value = 800;
                 oscillator.type = 'sine';
                 
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                const now = audioContext.currentTime;
+                gainNode.gain.setValueAtTime(0.4, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
                 
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.15);
+                oscillator.start(now);
+                oscillator.stop(now + 0.15);
             } catch (e) {
                 console.log('Sound error:', e);
             }
@@ -282,30 +301,38 @@
             if (!audioUnlocked || !audioContext) return;
             
             try {
-                const notes = [523, 659, 784, 1047];
-                notes.forEach((freq, i) => {
+                resumeAudio(); // Ensure audio is active
+                
+                // Play a LOUDER, more noticeable fanfare
+                const melody = [
+                    { freq: 523, time: 0, duration: 0.2 },     // C
+                    { freq: 659, time: 0.15, duration: 0.2 },  // E
+                    { freq: 784, time: 0.3, duration: 0.2 },   // G
+                    { freq: 1047, time: 0.45, duration: 0.4 }  // High C
+                ];
+                
+                melody.forEach(note => {
                     const oscillator = audioContext.createOscillator();
                     const gainNode = audioContext.createGain();
                     
                     oscillator.connect(gainNode);
                     gainNode.connect(audioContext.destination);
                     
-                    oscillator.frequency.value = freq;
-                    oscillator.type = 'sine';
+                    oscillator.frequency.value = note.freq;
+                    oscillator.type = 'triangle'; // Warmer sound
                     
-                    const startTime = audioContext.currentTime + i * 0.1;
-                    gainNode.gain.setValueAtTime(0.2, startTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
+                    const startTime = audioContext.currentTime + note.time;
+                    gainNode.gain.setValueAtTime(0.5, startTime); // LOUDER
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + note.duration);
                     
                     oscillator.start(startTime);
-                    oscillator.stop(startTime + 0.3);
+                    oscillator.stop(startTime + note.duration);
                 });
             } catch (e) {
                 console.log('Sound error:', e);
             }
         }
         
-        // BIGGER, MORE VISIBLE particles
         function createParticles(x, z) {
             for (let i = 0; i < 20; i++) {
                 particles.push({
@@ -453,6 +480,7 @@
             const activate = (e) => {
                 e.preventDefault();
                 keys[key] = true;
+                resumeAudio(); // Resume on button press too
             };
             
             const deactivate = (e) => {
@@ -511,18 +539,15 @@
             const size = 60 * pos.scale * letter.scale * animScale;
             const isNext = (letter.index === currentLetterIndex) && !letter.collected;
             
-            // Shadow
             ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
             ctx.beginPath();
             ctx.ellipse(pos.x, pos.y, size * 0.4, size * 0.15, 0, 0, Math.PI * 2);
             ctx.fill();
             
-            // ENHANCED glowing animation
             if (isNext) {
                 const time = Date.now() * 0.003;
                 const pulse = Math.sin(time) * 0.5 + 0.5;
                 
-                // Outer glow rings
                 for (let i = 3; i > 0; i--) {
                     ctx.strokeStyle = `rgba(255, 255, 0, ${0.3 * pulse * (i / 3)})`;
                     ctx.lineWidth = 8;
