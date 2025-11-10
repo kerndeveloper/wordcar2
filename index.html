@@ -59,6 +59,13 @@
             font-size: 20px;
         }
         
+        .audio-hint {
+            color: #ff9900;
+            font-size: 14px;
+            margin-top: 5px;
+            opacity: 0.8;
+        }
+        
         .controls {
             position: absolute;
             bottom: 20px;
@@ -139,28 +146,6 @@
             box-shadow: 0 8px 32px rgba(0,0,0,0.8);
         }
         
-        #audioPrompt {
-            position: absolute;
-            bottom: 100px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(255, 100, 0, 0.95);
-            padding: 15px 25px;
-            border-radius: 10px;
-            color: white;
-            font-size: 18px;
-            font-weight: bold;
-            display: none;
-            z-index: 50;
-            animation: pulse 1s infinite;
-            box-shadow: 0 4px 16px rgba(255,100,0,0.6);
-        }
-        
-        @keyframes pulse {
-            0%, 100% { transform: translateX(-50%) scale(1); }
-            50% { transform: translateX(-50%) scale(1.05); }
-        }
-        
         .start-btn {
             margin-top: 20px;
             padding: 15px 40px;
@@ -199,10 +184,9 @@
         Word: <span class="word-display" id="wordDisplay">---</span><br>
         Next: <span class="highlight" id="nextLetter">-</span><br>
         Score: <span class="highlight" id="score">0</span><br>
-        Time: <span class="timer" id="timer">0.0s</span>
+        Time: <span class="timer" id="timer">0.0s</span><br>
+        <div class="audio-hint">🔊 Tap screen if sound stops</div>
     </div>
-    
-    <div id="audioPrompt">🔊 Tap anywhere to enable sound</div>
     
     <div id="celebration">
         <div class="celebrate-text">🎉 WORD COMPLETE! 🎉</div>
@@ -235,7 +219,6 @@
         const scoreEl = document.getElementById('score');
         const timerEl = document.getElementById('timer');
         const celebrationEl = document.getElementById('celebration');
-        const audioPromptEl = document.getElementById('audioPrompt');
         
         let gameStarted = false;
         let audioContext = null;
@@ -279,52 +262,13 @@
         
         function resumeAudio() {
             if (audioContext && audioContext.state === 'suspended') {
-                audioContext.resume().then(() => {
-                    console.log('Audio resumed');
-                    hideAudioPrompt();
-                }).catch(e => {
-                    console.log('Audio resume failed:', e);
-                });
+                audioContext.resume();
             }
         }
         
-        function checkAudioState() {
-            if (audioContext && audioContext.state === 'suspended' && gameStarted) {
-                showAudioPrompt();
-            }
-        }
-        
-        function showAudioPrompt() {
-            audioPromptEl.style.display = 'block';
-        }
-        
-        function hideAudioPrompt() {
-            audioPromptEl.style.display = 'none';
-        }
-        
-        // Check audio state when tab becomes visible
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden && audioUnlocked) {
-                setTimeout(checkAudioState, 100);
-            }
-        });
-        
-        // Check on focus
-        window.addEventListener('focus', () => {
-            if (audioUnlocked) {
-                setTimeout(checkAudioState, 100);
-            }
-        });
-        
-        // Resume and hide prompt on any interaction
-        function handleInteraction() {
-            if (audioUnlocked) {
-                resumeAudio();
-            }
-        }
-        
-        ['touchstart', 'touchend', 'click', 'mousedown'].forEach(event => {
-            document.addEventListener(event, handleInteraction, { passive: true });
+        // Resume audio on any user interaction
+        ['touchstart', 'click', 'mousedown'].forEach(event => {
+            document.addEventListener(event, resumeAudio, { passive: true });
         });
         
         function playCollectSound() {
@@ -535,7 +479,7 @@
             const activate = (e) => {
                 e.preventDefault();
                 keys[key] = true;
-                handleInteraction();
+                resumeAudio();
             };
             
             const deactivate = (e) => {
