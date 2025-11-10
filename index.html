@@ -139,6 +139,28 @@
             box-shadow: 0 8px 32px rgba(0,0,0,0.8);
         }
         
+        #audioPrompt {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 100, 0, 0.95);
+            padding: 15px 25px;
+            border-radius: 10px;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            display: none;
+            z-index: 50;
+            animation: pulse 1s infinite;
+            box-shadow: 0 4px 16px rgba(255,100,0,0.6);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.05); }
+        }
+        
         .start-btn {
             margin-top: 20px;
             padding: 15px 40px;
@@ -164,7 +186,7 @@
             in the correct order to spell words!
         </div>
         <div style="color: #ffff00; margin-bottom: 10px;">
-            The YELLOW glowing letter is next!
+            The YELLOW glowing letters are next!
         </div>
         <div style="font-size: 16px; color: #aaa;">
             Use arrow buttons to move
@@ -179,6 +201,8 @@
         Score: <span class="highlight" id="score">0</span><br>
         Time: <span class="timer" id="timer">0.0s</span>
     </div>
+    
+    <div id="audioPrompt">🔊 Tap anywhere to enable sound</div>
     
     <div id="celebration">
         <div class="celebrate-text">🎉 WORD COMPLETE! 🎉</div>
@@ -211,6 +235,7 @@
         const scoreEl = document.getElementById('score');
         const timerEl = document.getElementById('timer');
         const celebrationEl = document.getElementById('celebration');
+        const audioPromptEl = document.getElementById('audioPrompt');
         
         let gameStarted = false;
         let audioContext = null;
@@ -244,7 +269,6 @@
         let wordStartTime = 0;
         let currentWordTime = 0;
         
-        // Initialize audio
         function initAudio() {
             if (!audioContext) {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -253,49 +277,62 @@
             audioUnlocked = true;
         }
         
-        // Aggressive audio resuming
         function resumeAudio() {
             if (audioContext && audioContext.state === 'suspended') {
                 audioContext.resume().then(() => {
                     console.log('Audio resumed');
+                    hideAudioPrompt();
                 }).catch(e => {
                     console.log('Audio resume failed:', e);
                 });
             }
         }
         
-        // Try to resume audio every second
-        setInterval(() => {
-            if (audioUnlocked && gameStarted) {
-                resumeAudio();
+        function checkAudioState() {
+            if (audioContext && audioContext.state === 'suspended' && gameStarted) {
+                showAudioPrompt();
             }
-        }, 1000);
+        }
         
-        // Resume on visibility change
+        function showAudioPrompt() {
+            audioPromptEl.style.display = 'block';
+        }
+        
+        function hideAudioPrompt() {
+            audioPromptEl.style.display = 'none';
+        }
+        
+        // Check audio state when tab becomes visible
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden && audioUnlocked) {
-                setTimeout(resumeAudio, 100);
+                setTimeout(checkAudioState, 100);
             }
         });
         
-        // Resume on focus
+        // Check on focus
         window.addEventListener('focus', () => {
             if (audioUnlocked) {
-                setTimeout(resumeAudio, 100);
+                setTimeout(checkAudioState, 100);
             }
         });
         
-        // Resume on any touch
+        // Resume and hide prompt on any interaction
+        function handleInteraction() {
+            if (audioUnlocked) {
+                resumeAudio();
+            }
+        }
+        
         ['touchstart', 'touchend', 'click', 'mousedown'].forEach(event => {
-            document.addEventListener(event, resumeAudio, { passive: true });
+            document.addEventListener(event, handleInteraction, { passive: true });
         });
         
         function playCollectSound() {
-            if (!audioUnlocked || !audioContext) return;
+            if (!audioUnlocked || !audioContext || audioContext.state !== 'running') {
+                return;
+            }
             
             try {
-                resumeAudio();
-                
                 const oscillator = audioContext.createOscillator();
                 const gainNode = audioContext.createGain();
                 
@@ -317,11 +354,11 @@
         }
         
         function playCompleteSound() {
-            if (!audioUnlocked || !audioContext) return;
+            if (!audioUnlocked || !audioContext || audioContext.state !== 'running') {
+                return;
+            }
             
             try {
-                resumeAudio();
-                
                 const melody = [
                     { freq: 523, time: 0, duration: 0.2 },
                     { freq: 659, time: 0.15, duration: 0.2 },
@@ -498,7 +535,7 @@
             const activate = (e) => {
                 e.preventDefault();
                 keys[key] = true;
-                resumeAudio();
+                handleInteraction();
             };
             
             const deactivate = (e) => {
@@ -556,8 +593,6 @@
             const animScale = letter.collectAnim > 0 ? (1 - letter.collectAnim) : 1;
             const size = 60 * pos.scale * letter.scale * animScale;
             
-            // FIXED: Check if this letter's CHARACTER matches what we need
-            // (not just its index position)
             const targetChar = currentWord[currentLetterIndex];
             const isNext = (letter.char === targetChar) && !letter.collected;
             
@@ -645,13 +680,11 @@
             
             updateParticles();
             
-            // FIXED: Check collision with ANY letter that matches the target character
             const targetChar = currentWord[currentLetterIndex];
             
             for (let i = 0; i < letters.length; i++) {
                 const letter = letters[i];
                 
-                // Collect if: matches character, not collected yet, AND we're touching it
                 if (letter.char === targetChar && !letter.collected && checkCollision(letter)) {
                     letter.collected = true;
                     letter.collectAnim = 0.01;
