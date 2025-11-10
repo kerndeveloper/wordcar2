@@ -28,11 +28,11 @@
             position: absolute;
             top: 10px;
             left: 10px;
-            color: white;
-            background: rgba(255, 255, 255, 0.1);
+            color: #1a1a1a;
+            background: rgba(255, 255, 255, 0.25);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
             padding: 10px 15px;
             border-radius: 12px;
             font-size: 14px;
@@ -44,6 +44,7 @@
         .ui-title {
             font-size: 16px;
             margin-bottom: 4px;
+            color: #000;
         }
         
         .ui-row {
@@ -54,26 +55,26 @@
         }
         
         .ui-label {
-            opacity: 0.8;
+            color: #333;
         }
         
         .highlight {
-            color: #00ff00;
+            color: #00aa00;
             font-size: 15px;
         }
         
         .word-display {
-            color: #ffff00;
+            color: #cc8800;
             font-size: 18px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.5);
         }
         
         .collected {
-            color: #00ff00;
+            color: #00aa00;
         }
         
         .timer {
-            color: #00ffff;
+            color: #0088cc;
         }
         
         .controls {
@@ -124,14 +125,14 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.2);
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.4);
             padding: 30px;
             border-radius: 20px;
             text-align: center;
-            color: white;
+            color: #1a1a1a;
             font-size: 32px;
             font-weight: bold;
             display: none;
@@ -140,10 +141,10 @@
         }
         
         .celebrate-text {
-            color: #ffff00;
+            color: #cc8800;
             font-size: 48px;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+            text-shadow: 2px 2px 4px rgba(255,255,255,0.5);
         }
         
         #instructions {
@@ -151,14 +152,14 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.2);
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.4);
             padding: 30px;
             border-radius: 20px;
             text-align: center;
-            color: white;
+            color: #1a1a1a;
             font-size: 20px;
             z-index: 100;
             max-width: 90%;
@@ -168,34 +169,34 @@
         .start-btn {
             margin-top: 20px;
             padding: 15px 40px;
-            background: rgba(0, 255, 0, 0.3);
+            background: rgba(0, 200, 0, 0.4);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            border: 2px solid rgba(255, 255, 255, 0.4);
-            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            color: #1a1a1a;
             border-radius: 10px;
             font-size: 24px;
             font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 4px 16px rgba(0,255,0,0.2);
+            box-shadow: 0 4px 16px rgba(0,200,0,0.3);
         }
         
         .start-btn:active {
-            background: rgba(0, 255, 0, 0.5);
+            background: rgba(0, 200, 0, 0.6);
         }
     </style>
 </head>
 <body>
     <div id="instructions">
-        <div style="font-size: 32px; margin-bottom: 20px;">🚗 CAR WORD GAME 🚗</div>
+        <div style="font-size: 32px; margin-bottom: 20px; color: #000;">🚗 CAR WORD GAME 🚗</div>
         <div style="margin-bottom: 15px;">
             Drive the red car and collect letters<br>
             in the correct order to spell words!
         </div>
-        <div style="color: #ffff00; margin-bottom: 10px;">
+        <div style="color: #cc8800; margin-bottom: 10px; font-weight: bold;">
             The YELLOW glowing letters are next!
         </div>
-        <div style="font-size: 16px; opacity: 0.8;">
+        <div style="font-size: 16px; color: #333;">
             Use arrow buttons to move
         </div>
         <button class="start-btn" onclick="startGame()">START GAME</button>
@@ -605,14 +606,16 @@
         }
         
         function draw() {
-            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            // Sky - blue gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.4);
             gradient.addColorStop(0, '#87CEEB');
             gradient.addColorStop(1, '#B0E0E6');
             ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, canvas.width, canvas.height * 0.4);
             
+            // Ground - ALL GREEN
             ctx.fillStyle = '#228B22';
-            ctx.fillRect(0, canvas.height * 0.55, canvas.width, canvas.height * 0.45);
+            ctx.fillRect(0, canvas.height * 0.4, canvas.width, canvas.height * 0.6);
             
             drawGround();
             
