@@ -253,29 +253,48 @@
             audioUnlocked = true;
         }
         
-        // Resume audio context (for when returning from another tab)
+        // Aggressive audio resuming
         function resumeAudio() {
             if (audioContext && audioContext.state === 'suspended') {
-                audioContext.resume();
+                audioContext.resume().then(() => {
+                    console.log('Audio resumed');
+                }).catch(e => {
+                    console.log('Audio resume failed:', e);
+                });
             }
         }
         
-        // Auto-resume audio when page becomes visible
+        // Try to resume audio every second
+        setInterval(() => {
+            if (audioUnlocked && gameStarted) {
+                resumeAudio();
+            }
+        }, 1000);
+        
+        // Resume on visibility change
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden && audioUnlocked) {
-                resumeAudio();
+                setTimeout(resumeAudio, 100);
             }
         });
         
-        // Also resume on any user interaction
-        window.addEventListener('touchstart', resumeAudio, { once: false });
-        window.addEventListener('click', resumeAudio, { once: false });
+        // Resume on focus
+        window.addEventListener('focus', () => {
+            if (audioUnlocked) {
+                setTimeout(resumeAudio, 100);
+            }
+        });
+        
+        // Resume on any touch
+        ['touchstart', 'touchend', 'click', 'mousedown'].forEach(event => {
+            document.addEventListener(event, resumeAudio, { passive: true });
+        });
         
         function playCollectSound() {
             if (!audioUnlocked || !audioContext) return;
             
             try {
-                resumeAudio(); // Ensure audio is active
+                resumeAudio();
                 
                 const oscillator = audioContext.createOscillator();
                 const gainNode = audioContext.createGain();
@@ -301,14 +320,13 @@
             if (!audioUnlocked || !audioContext) return;
             
             try {
-                resumeAudio(); // Ensure audio is active
+                resumeAudio();
                 
-                // Play a LOUDER, more noticeable fanfare
                 const melody = [
-                    { freq: 523, time: 0, duration: 0.2 },     // C
-                    { freq: 659, time: 0.15, duration: 0.2 },  // E
-                    { freq: 784, time: 0.3, duration: 0.2 },   // G
-                    { freq: 1047, time: 0.45, duration: 0.4 }  // High C
+                    { freq: 523, time: 0, duration: 0.2 },
+                    { freq: 659, time: 0.15, duration: 0.2 },
+                    { freq: 784, time: 0.3, duration: 0.2 },
+                    { freq: 1047, time: 0.45, duration: 0.4 }
                 ];
                 
                 melody.forEach(note => {
@@ -319,10 +337,10 @@
                     gainNode.connect(audioContext.destination);
                     
                     oscillator.frequency.value = note.freq;
-                    oscillator.type = 'triangle'; // Warmer sound
+                    oscillator.type = 'triangle';
                     
                     const startTime = audioContext.currentTime + note.time;
-                    gainNode.gain.setValueAtTime(0.5, startTime); // LOUDER
+                    gainNode.gain.setValueAtTime(0.5, startTime);
                     gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + note.duration);
                     
                     oscillator.start(startTime);
@@ -480,7 +498,7 @@
             const activate = (e) => {
                 e.preventDefault();
                 keys[key] = true;
-                resumeAudio(); // Resume on button press too
+                resumeAudio();
             };
             
             const deactivate = (e) => {
@@ -537,7 +555,11 @@
             
             const animScale = letter.collectAnim > 0 ? (1 - letter.collectAnim) : 1;
             const size = 60 * pos.scale * letter.scale * animScale;
-            const isNext = (letter.index === currentLetterIndex) && !letter.collected;
+            
+            // FIXED: Check if this letter's CHARACTER matches what we need
+            // (not just its index position)
+            const targetChar = currentWord[currentLetterIndex];
+            const isNext = (letter.char === targetChar) && !letter.collected;
             
             ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
             ctx.beginPath();
@@ -623,10 +645,14 @@
             
             updateParticles();
             
+            // FIXED: Check collision with ANY letter that matches the target character
+            const targetChar = currentWord[currentLetterIndex];
+            
             for (let i = 0; i < letters.length; i++) {
                 const letter = letters[i];
                 
-                if (letter.index === currentLetterIndex && !letter.collected && checkCollision(letter)) {
+                // Collect if: matches character, not collected yet, AND we're touching it
+                if (letter.char === targetChar && !letter.collected && checkCollision(letter)) {
                     letter.collected = true;
                     letter.collectAnim = 0.01;
                     currentLetterIndex++;
