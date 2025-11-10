@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Car Word Game - Phase 2.5</title>
+    <title>Car Word Game</title>
     <style>
         * {
             margin: 0;
@@ -38,8 +38,8 @@
         }
         
         .highlight {
-            color: #ffff00;
-            font-size: 20px;
+            color: #00ff00;
+            font-size: 22px;
         }
         
         .controls {
@@ -86,8 +86,9 @@
 </head>
 <body>
     <div id="ui">
-        🚗 <strong>DRIVE THE RED CAR!</strong><br>
-        Position: <span class="highlight" id="position">0, 0</span><br>
+        🚗 <strong>CAR WORD GAME</strong><br>
+        X: <span class="highlight" id="xPos">0.0</span><br>
+        Z: <span class="highlight" id="zPos">0.0</span><br>
         FPS: <span id="fps">60</span>
     </div>
     
@@ -111,8 +112,9 @@
         
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        const xPosEl = document.getElementById('xPos');
+        const zPosEl = document.getElementById('zPos');
         const fpsEl = document.getElementById('fps');
-        const positionEl = document.getElementById('position');
         
         function resizeCanvas() {
             canvas.width = window.innerWidth;
@@ -121,22 +123,16 @@
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
         
-        // MUCH CLOSER CAMERA for better visibility
-        function project3D(x, y, z) {
-            const cameraX = carX;
-            const cameraY = 4; // Lower camera
-            const cameraZ = carZ + 6; // MUCH closer
-            
-            const relX = x - cameraX;
-            const relY = y - cameraY;
-            const relZ = z - cameraZ;
-            
-            if (relZ >= -0.5) return null;
-            
-            const scale = 600 / (-relZ); // Bigger scale
+        // Simple perspective calculation
+        function getScale(z) {
+            return 1 / (1 + z * 0.05);
+        }
+        
+        function toScreen(x, z) {
+            const scale = getScale(z);
             return {
-                x: canvas.width / 2 + relX * scale,
-                y: canvas.height / 2 + relY * scale,
+                x: canvas.width / 2 + (x - carX) * 80 * scale,
+                y: canvas.height * 0.7 - z * 20 * scale,
                 scale: scale
             };
         }
@@ -144,7 +140,7 @@
         // Game state
         let carX = 0;
         let carZ = 0;
-        const carSpeed = 0.3; // Even faster
+        const carSpeed = 0.3;
         
         // Input
         const keys = {};
@@ -174,12 +170,9 @@
             
             btn.addEventListener('touchstart', activate);
             btn.addEventListener('touchend', deactivate);
+            btn.addEventListener('touchcancel', deactivate);
             btn.addEventListener('mousedown', activate);
             btn.addEventListener('mouseup', deactivate);
-            
-            // Prevent stuck buttons
-            btn.addEventListener('touchcancel', deactivate);
-            document.addEventListener('touchend', deactivate);
         }
         
         setupButton('btnUp', 'ArrowUp');
@@ -187,144 +180,123 @@
         setupButton('btnLeft', 'ArrowLeft');
         setupButton('btnRight', 'ArrowRight');
         
-        // Draw BIGGER, CLEARER car
-        function drawCar() {
-            // Main body - BRIGHT RED
-            drawBox(carX, 0.7, carZ, 3, 1.2, 5, '#ff0000');
+        // Draw ground with perspective
+        function drawGround() {
+            // Draw grid
+            ctx.strokeStyle = '#2a5a2a';
+            ctx.lineWidth = 2;
             
-            // Cabin - ORANGE for contrast
-            drawBox(carX, 1.6, carZ - 0.5, 2.5, 0.8, 3, '#ff6600');
-            
-            // Hood - YELLOW
-            drawBox(carX, 0.4, carZ - 3, 2.8, 0.4, 1, '#ffff00');
-            
-            // Draw BIG wheels
-            const wheelPositions = [
-                { x: -1.2, z: -1.8 },
-                { x: 1.2, z: -1.8 },
-                { x: -1.2, z: 1.8 },
-                { x: 1.2, z: 1.8 }
-            ];
-            
-            wheelPositions.forEach(wheel => {
-                const pos = project3D(carX + wheel.x, 0.4, carZ + wheel.z);
-                if (pos) {
-                    ctx.fillStyle = '#000';
-                    ctx.beginPath();
-                    ctx.arc(pos.x, pos.y, 15 * pos.scale, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.strokeStyle = '#666';
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                }
-            });
-            
-            // Draw windows (cyan/blue for visibility)
-            drawBox(carX, 1.6, carZ - 1, 2.2, 0.6, 1.5, '#00ffff');
-        }
-        
-        function drawBox(x, y, z, width, height, depth, color) {
-            const w = width / 2;
-            const h = height / 2;
-            const d = depth / 2;
-            
-            const corners = [
-                project3D(x - w, y - h, z - d),
-                project3D(x + w, y - h, z - d),
-                project3D(x + w, y + h, z - d),
-                project3D(x - w, y + h, z - d),
-                project3D(x - w, y - h, z + d),
-                project3D(x + w, y - h, z + d),
-                project3D(x + w, y + h, z + d),
-                project3D(x - w, y + h, z + d)
-            ];
-            
-            if (corners.some(c => c === null)) return;
-            
-            function drawFace(indices, faceColor) {
+            // Horizontal lines
+            for (let z = -5; z <= 20; z += 2) {
+                const left = toScreen(-15, z);
+                const right = toScreen(15, z);
+                
                 ctx.beginPath();
-                ctx.moveTo(corners[indices[0]].x, corners[indices[0]].y);
-                for (let i = 1; i < indices.length; i++) {
-                    ctx.lineTo(corners[indices[i]].x, corners[indices[i]].y);
-                }
-                ctx.closePath();
-                ctx.fillStyle = faceColor;
-                ctx.fill();
-                ctx.strokeStyle = '#000';
-                ctx.lineWidth = 3;
+                ctx.moveTo(left.x, left.y);
+                ctx.lineTo(right.x, right.y);
                 ctx.stroke();
             }
             
-            // Draw all faces with shading
-            drawFace([0, 1, 2, 3], shadeColor(color, 0.4));
-            drawFace([0, 4, 7, 3], shadeColor(color, 0.6));
-            drawFace([1, 5, 6, 2], shadeColor(color, 0.7));
-            drawFace([0, 1, 5, 4], shadeColor(color, 0.5));
-            drawFace([3, 2, 6, 7], shadeColor(color, 0.9));
-            drawFace([4, 5, 6, 7], color);
-        }
-        
-        function shadeColor(color, factor) {
-            const num = parseInt(color.slice(1), 16);
-            const r = Math.floor(((num >> 16) & 0xFF) * factor);
-            const g = Math.floor(((num >> 8) & 0xFF) * factor);
-            const b = Math.floor((num & 0xFF) * factor);
-            return `rgb(${r},${g},${b})`;
-        }
-        
-        // Simpler, BOLDER grid
-        function drawGround() {
-            ctx.strokeStyle = '#1a4d1a';
-            ctx.lineWidth = 3;
-            
-            for (let i = -8; i <= 8; i++) {
-                const start1 = project3D(i * 3, 0, -20);
-                const end1 = project3D(i * 3, 0, 20);
+            // Vertical lines
+            for (let x = -15; x <= 15; x += 3) {
+                const near = toScreen(x, -5);
+                const far = toScreen(x, 20);
                 
-                if (start1 && end1) {
-                    ctx.beginPath();
-                    ctx.moveTo(start1.x, start1.y);
-                    ctx.lineTo(end1.x, end1.y);
-                    ctx.stroke();
-                }
-                
-                const start2 = project3D(-20, 0, i * 3);
-                const end2 = project3D(20, 0, i * 3);
-                
-                if (start2 && end2) {
-                    ctx.beginPath();
-                    ctx.moveTo(start2.x, start2.y);
-                    ctx.lineTo(end2.x, end2.y);
-                    ctx.stroke();
-                }
+                ctx.beginPath();
+                ctx.moveTo(near.x, near.y);
+                ctx.lineTo(far.x, far.y);
+                ctx.stroke();
             }
         }
         
-        // BIG test letters
-        function drawTestLetters() {
+        // Draw a simple 2.5D object
+        function drawObject(x, z, width, height, color) {
+            const pos = toScreen(x, z);
+            const w = width * 40 * pos.scale;
+            const h = height * 40 * pos.scale;
+            
+            // Shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.beginPath();
+            ctx.ellipse(pos.x, pos.y + h/2, w * 0.6, w * 0.2, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Main object
+            ctx.fillStyle = color;
+            ctx.fillRect(pos.x - w/2, pos.y - h, w, h);
+            
+            // Outline
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(pos.x - w/2, pos.y - h, w, h);
+        }
+        
+        // Draw the car
+        function drawCar() {
+            const pos = toScreen(carX, carZ);
+            const scale = pos.scale;
+            
+            // Shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.beginPath();
+            ctx.ellipse(pos.x, pos.y, 60 * scale, 20 * scale, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Body
+            ctx.fillStyle = '#ff0000';
+            ctx.fillRect(pos.x - 50 * scale, pos.y - 80 * scale, 100 * scale, 70 * scale);
+            
+            // Cabin
+            ctx.fillStyle = '#cc0000';
+            ctx.fillRect(pos.x - 40 * scale, pos.y - 120 * scale, 80 * scale, 40 * scale);
+            
+            // Windows
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(pos.x - 35 * scale, pos.y - 115 * scale, 30 * scale, 30 * scale);
+            ctx.fillRect(pos.x + 5 * scale, pos.y - 115 * scale, 30 * scale, 30 * scale);
+            
+            // Wheels
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(pos.x - 30 * scale, pos.y - 10 * scale, 12 * scale, 0, Math.PI * 2);
+            ctx.arc(pos.x + 30 * scale, pos.y - 10 * scale, 12 * scale, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Outline
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(pos.x - 50 * scale, pos.y - 80 * scale, 100 * scale, 70 * scale);
+            ctx.strokeRect(pos.x - 40 * scale, pos.y - 120 * scale, 80 * scale, 40 * scale);
+        }
+        
+        // Draw test letters
+        function drawLetters() {
             const letters = [
-                { x: -5, z: -8, color: '#ffff00' },
-                { x: 0, z: -12, color: '#ff00ff' },
-                { x: 5, z: -16, color: '#00ffff' }
+                { x: -4, z: 5, color: '#ffff00' },
+                { x: 0, z: 10, color: '#ff00ff' },
+                { x: 4, z: 15, color: '#00ffff' }
             ];
             
             letters.forEach(letter => {
-                drawBox(letter.x, 1, letter.z, 2, 2, 2, letter.color);
+                drawObject(letter.x, letter.z, 1.5, 1.5, letter.color);
             });
         }
         
+        // Update
         function update() {
-            if (keys['ArrowUp'] || keys['w']) carZ -= carSpeed;
-            if (keys['ArrowDown'] || keys['s']) carZ += carSpeed;
+            if (keys['ArrowUp'] || keys['w']) carZ += carSpeed;
+            if (keys['ArrowDown'] || keys['s']) carZ -= carSpeed;
             if (keys['ArrowLeft'] || keys['a']) carX -= carSpeed;
             if (keys['ArrowRight'] || keys['d']) carX += carSpeed;
             
             carX = Math.max(-12, Math.min(12, carX));
-            carZ = Math.max(-18, Math.min(18, carZ));
+            carZ = Math.max(-3, Math.min(18, carZ));
             
-            positionEl.textContent = `${carX.toFixed(1)}, ${carZ.toFixed(1)}`;
+            xPosEl.textContent = carX.toFixed(1);
+            zPosEl.textContent = carZ.toFixed(1);
         }
         
+        // Draw
         function draw() {
             // Sky
             const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
@@ -335,14 +307,14 @@
             
             // Ground
             ctx.fillStyle = '#228B22';
-            ctx.fillRect(0, canvas.height * 0.4, canvas.width, canvas.height * 0.6);
+            ctx.fillRect(0, canvas.height * 0.55, canvas.width, canvas.height * 0.45);
             
             drawGround();
-            drawTestLetters();
+            drawLetters();
             drawCar();
         }
         
-        // FPS counter
+        // FPS
         let lastTime = performance.now();
         let frameCount = 0;
         
@@ -361,7 +333,7 @@
             requestAnimationFrame(gameLoop);
         }
         
-        requestAnimationFrame(gameLoop);
+        gameLoop();
     </script>
 </body>
 </html>
